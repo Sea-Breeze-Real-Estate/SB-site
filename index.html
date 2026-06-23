@@ -554,14 +554,62 @@ function applyLang(lang){
   try { localStorage.setItem('sb_lang', lang); } catch(e){}
 }
 
+/* ---------- маршрутизация по языку: /ru, /he, /en ---------- */
+var SUPPORTED_LANGS = ['ru', 'he', 'en'];
+var DEFAULT_LANG = 'ru';
+
+/* «базовый» путь развёртывания (без имени файла и без языкового сегмента),
+   чтобы /ru работал и в корне домена, и в подкаталоге */
+function pathSegments(){
+  var parts = location.pathname.split('/');
+  if (parts.length && parts[parts.length - 1].indexOf('.') !== -1) parts.pop(); // index.html и т.п.
+  return parts;
+}
+function computeBase(){
+  var parts = pathSegments();
+  if (parts.length && SUPPORTED_LANGS.indexOf(parts[parts.length - 1]) !== -1) parts.pop();
+  var base = parts.join('/');
+  return base === '/' ? '' : base;
+}
+function langFromPath(){
+  var parts = pathSegments();
+  var last = parts[parts.length - 1];
+  return SUPPORTED_LANGS.indexOf(last) !== -1 ? last : null;
+}
+
+var LANG_BASE = computeBase();
+
+function langUrl(lang){
+  return (LANG_BASE || '') + '/' + lang + location.search + location.hash;
+}
+function goToLang(lang, replace){
+  var url = langUrl(lang);
+  try {
+    if (replace) history.replaceState({ lang: lang }, '', url);
+    else history.pushState({ lang: lang }, '', url);
+  } catch (e) { /* file:// и т.п. — просто игнорируем */ }
+}
+
 document.querySelectorAll('.lang-switcher button').forEach(function(btn){
-  btn.addEventListener('click', function(){ applyLang(btn.getAttribute('data-lang')); });
+  btn.addEventListener('click', function(){
+    var lang = btn.getAttribute('data-lang');
+    goToLang(lang, false);
+    applyLang(lang);
+  });
+});
+
+window.addEventListener('popstate', function(){
+  applyLang(langFromPath() || DEFAULT_LANG);
 });
 
 (function(){
+  var fromPath = langFromPath();
   var saved = null;
   try { saved = localStorage.getItem('sb_lang'); } catch(e){}
-  applyLang(saved || 'ru');
+  var initial = fromPath || saved || DEFAULT_LANG;
+  /* приводим URL к виду .../<lang> без создания лишней записи в истории */
+  goToLang(initial, true);
+  applyLang(initial);
 })();
 </script>
 
