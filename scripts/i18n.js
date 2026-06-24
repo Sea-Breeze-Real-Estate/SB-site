@@ -45,7 +45,10 @@ function applyTranslations(dict) {
 /* сегменты пути без имени файла (index.html и т.п.) */
 function pathSegments() {
   const parts = location.pathname.split('/');
+  // отбрасываем имя файла (index.html и т.п.)
   if (parts.length && parts[parts.length - 1].includes('.')) parts.pop();
+  // отбрасываем хвостовые пустые сегменты от завершающего слэша (/SB-site/ → /SB-site)
+  while (parts.length > 1 && parts[parts.length - 1] === '') parts.pop();
   return parts;
 }
 
